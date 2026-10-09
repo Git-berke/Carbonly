@@ -30,8 +30,23 @@ export function useActivityRecords() {
   useEffect(() => {
     queueMicrotask(() => {
       const raw = window.localStorage.getItem(LOCAL_DATA_STORAGE_KEY);
+      const sampleSeeded = window.localStorage.getItem(
+        `${LOCAL_DATA_STORAGE_KEY}.sample-seeded`
+      );
 
       if (!raw) {
+        if (!sampleSeeded) {
+          setEnvelope({
+            schemaVersion: 1,
+            records: createSampleRecords(),
+            updatedAt: new Date().toISOString()
+          });
+          window.localStorage.setItem(
+            `${LOCAL_DATA_STORAGE_KEY}.sample-seeded`,
+            "true"
+          );
+        }
+
         setIsLoaded(true);
         return;
       }
@@ -107,6 +122,10 @@ export function useActivityRecords() {
       records: createSampleRecords(),
       updatedAt: new Date().toISOString()
     });
+    window.localStorage.setItem(
+      `${LOCAL_DATA_STORAGE_KEY}.sample-seeded`,
+      "true"
+    );
   }, []);
 
   const importEnvelope = useCallback((input: unknown) => {
