@@ -22,8 +22,8 @@ model EmissionFactor {
   isDemo           Boolean  @default(true)
   createdAt        DateTime @default(now())
 
-  @@unique([category, denominatorUnit, region, publicationYear, sourceName])
-  @@index([category])
-  @@index([scope])
-  @@index([isDemo])
+  @@unique([category, denominatorUnit, region, publicationYear, sourceName], map: "emission_factor_unique_reference")
+  @@index([category], map: "emission_factor_category_idx")
+  @@index([scope], map: "emission_factor_scope_idx")
+  @@index([isDemo], map: "emission_factor_demo_idx")
 }
