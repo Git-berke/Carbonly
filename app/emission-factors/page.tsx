@@ -7,6 +7,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { getEmissionFactors } from "@/lib/emission-factors/repository";
+import { formatCategory, formatScope } from "@/lib/format";
 
 export default async function EmissionFactorsPage() {
   const { factors, mode } = await getEmissionFactors();
@@ -36,7 +37,7 @@ export default async function EmissionFactorsPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[980px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="py-3 pr-4 font-medium">Kategori</th>
@@ -46,17 +47,20 @@ export default async function EmissionFactorsPage() {
                   <th className="py-3 pr-4 font-medium">Bolge</th>
                   <th className="py-3 pr-4 font-medium">Yil</th>
                   <th className="py-3 pr-4 font-medium">Durum</th>
+                  <th className="py-3 pr-4 font-medium">Metodoloji</th>
                 </tr>
               </thead>
               <tbody>
                 {factors.map((factor) => (
                   <tr className="border-b border-border" key={factor.id}>
-                    <td className="py-4 pr-4 font-medium">{factor.category}</td>
+                    <td className="py-4 pr-4 font-medium">
+                      {formatCategory(factor.category)}
+                    </td>
                     <td className="py-4 pr-4">
                       {factor.value} {factor.numeratorUnit}/
                       {factor.denominatorUnit}
                     </td>
-                    <td className="py-4 pr-4">{factor.scope}</td>
+                    <td className="py-4 pr-4">{formatScope(factor.scope)}</td>
                     <td className="py-4 pr-4">{factor.sourceName}</td>
                     <td className="py-4 pr-4">{factor.region}</td>
                     <td className="py-4 pr-4">{factor.publicationYear}</td>
@@ -64,6 +68,9 @@ export default async function EmissionFactorsPage() {
                       <Badge tone={factor.isDemo ? "amber" : "emerald"}>
                         {factor.isDemo ? "Demo" : "Dogrulanmis"}
                       </Badge>
+                    </td>
+                    <td className="max-w-80 py-4 pr-4 text-muted-foreground">
+                      {factor.methodologyNote}
                     </td>
                   </tr>
                 ))}
