@@ -21,3 +21,7 @@ export function parseLocalDataEnvelope(input: unknown): LocalDataEnvelope {
 
   return parsed.data;
 }
+
+export function serializeLocalDataEnvelope(envelope: LocalDataEnvelope): string {
+  return JSON.stringify(envelope, null, 2);
+}
