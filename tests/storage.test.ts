@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { exportRecordsToCsv } from "@/lib/storage/export";
-import { parseLocalDataEnvelope } from "@/lib/storage/local-data";
+import {
+  parseLocalDataEnvelope,
+  validateLocalDataEnvelope
+} from "@/lib/storage/local-data";
 import { createTestRecord } from "@/tests/test-utils";
 
 describe("storage validation", () => {
@@ -26,6 +29,16 @@ describe("storage validation", () => {
     });
 
     expect(parsed.records).toHaveLength(1);
+  });
+
+  it("strictly rejects invalid JSON import envelopes", () => {
+    const parsed = validateLocalDataEnvelope({
+      schemaVersion: 1,
+      records: "bad",
+      updatedAt: "2026-10-09T12:00:00.000Z"
+    });
+
+    expect(parsed.success).toBe(false);
   });
 });
 

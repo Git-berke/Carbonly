@@ -1,6 +1,7 @@
 "use client";
 
-import { Activity, Flame, PlugZap, Trash2, TrendingUp } from "lucide-react";
+import { Activity, Download, Flame, PlugZap, Trash2, TrendingUp, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 import {
   aggregateByMonth,
   sumByCategory,
@@ -8,6 +9,8 @@ import {
 } from "@/lib/calculations/aggregation";
 import { formatCategory, formatKgCo2e, formatTonnesCo2e } from "@/lib/format";
 import { useActivityRecords } from "@/hooks/use-activity-records";
+import { exportRecordsToCsv } from "@/lib/storage/export";
+import { serializeLocalDataEnvelope } from "@/lib/storage/local-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +22,16 @@ import {
 } from "@/components/ui/card";
 
 export function DashboardClient() {
-  const { records, loadSampleRecords, clearRecords, deleteRecord } =
-    useActivityRecords();
+  const {
+    records,
+    envelope,
+    loadSampleRecords,
+    clearRecords,
+    deleteRecord,
+    importEnvelope
+  } = useActivityRecords();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dataMessage, setDataMessage] = useState<string | null>(null);
   const totalKg = records.reduce(
     (total, record) => total + record.emissionsKgCo2e,
     0
@@ -56,6 +67,59 @@ export function DashboardClient() {
     }
   ];
 
+  function downloadTextFile(filename: string, contents: string, type: string) {
+    const blob = new Blob([contents], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleCsvExport() {
+    downloadTextFile(
+      "carbonly-records.csv",
+      exportRecordsToCsv(records),
+      "text/csv;charset=utf-8"
+    );
+    setDataMessage("CSV dosyasi indirildi.");
+  }
+
+  function handleJsonExport() {
+    downloadTextFile(
+      "carbonly-backup.json",
+      serializeLocalDataEnvelope(envelope),
+      "application/json;charset=utf-8"
+    );
+    setDataMessage("JSON yedegi indirildi.");
+  }
+
+  async function handleJsonImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = importEnvelope(JSON.parse(text));
+
+      if (!parsed.success) {
+        setDataMessage(parsed.error);
+        return;
+      }
+
+      setDataMessage(`${parsed.data.records.length} kayit ice aktarildi.`);
+    } catch {
+      setDataMessage("JSON dosyasi okunamadi veya gecersiz.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
       <section className="flex flex-col gap-3">
@@ -87,6 +151,61 @@ export function DashboardClient() {
           </div>
         </div>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Veri yonetimi</CardTitle>
+          <CardDescription>
+            CSV raporu indirebilir, JSON yedegi alabilir veya daha once alinmis
+            Carbonly JSON yedegini ice aktarabilirsiniz.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={handleCsvExport}
+            >
+              <Download className="size-4" />
+              CSV indir
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={handleJsonExport}
+            >
+              <Download className="size-4" />
+              JSON yedek indir
+            </Button>
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="size-4" />
+              JSON ice aktar
+            </Button>
+            <input
+              ref={fileInputRef}
+              accept="application/json,.json"
+              className="hidden"
+              type="file"
+              onChange={handleJsonImport}
+            />
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Yerel veriler tarayici depolamasi temizlenirse kaybolabilir; JSON
+            yedegi almaniz onerilir.
+          </p>
+          {dataMessage ? (
+            <p className="mt-3 text-sm text-emerald-600">{dataMessage}</p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <section className="grid gap-4 md:grid-cols-3">
         {summaryCards.map((card) => (
@@ -181,7 +300,7 @@ export function DashboardClient() {
                       {formatKgCo2e(record.emissionsKgCo2e)}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {record.activityDate} · {record.amount} {record.unit}
+                      {record.activityDate} - {record.amount} {record.unit}
                     </p>
                   </div>
                   <Button

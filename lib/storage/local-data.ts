@@ -22,6 +22,24 @@ export function parseLocalDataEnvelope(input: unknown): LocalDataEnvelope {
   return parsed.data;
 }
 
+export function validateLocalDataEnvelope(input: unknown):
+  | { success: true; data: LocalDataEnvelope }
+  | { success: false; error: string } {
+  const parsed = localDataEnvelopeSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "JSON yedegi Carbonly yerel veri semasi ile uyumlu degil."
+    };
+  }
+
+  return {
+    success: true,
+    data: parsed.data
+  };
+}
+
 export function serializeLocalDataEnvelope(envelope: LocalDataEnvelope): string {
   return JSON.stringify(envelope, null, 2);
 }

@@ -8,7 +8,8 @@ import {
   createEmptyLocalDataEnvelope,
   LOCAL_DATA_STORAGE_KEY,
   parseLocalDataEnvelope,
-  serializeLocalDataEnvelope
+  serializeLocalDataEnvelope,
+  validateLocalDataEnvelope
 } from "@/lib/storage/local-data";
 import type { ActivityCategory, ActivityRecord, ActivityUnit, LocalDataEnvelope } from "@/lib/types";
 
@@ -108,15 +109,41 @@ export function useActivityRecords() {
     });
   }, []);
 
+  const importEnvelope = useCallback((input: unknown) => {
+    const validated = validateLocalDataEnvelope(input);
+
+    if (!validated.success) {
+      return validated;
+    }
+
+    setEnvelope({
+      ...validated.data,
+      updatedAt: new Date().toISOString()
+    });
+
+    return validated;
+  }, []);
+
   return useMemo(
     () => ({
       records,
+      envelope,
       isLoaded,
       addRecord,
       deleteRecord,
       clearRecords,
-      loadSampleRecords
+      loadSampleRecords,
+      importEnvelope
     }),
-    [addRecord, clearRecords, deleteRecord, isLoaded, loadSampleRecords, records]
+    [
+      addRecord,
+      clearRecords,
+      deleteRecord,
+      envelope,
+      importEnvelope,
+      isLoaded,
+      loadSampleRecords,
+      records
+    ]
   );
 }
