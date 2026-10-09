@@ -1,6 +1,14 @@
 "use client";
 
-import { Activity, Download, Flame, PlugZap, Trash2, TrendingUp, Upload } from "lucide-react";
+import {
+  Activity,
+  Download,
+  Flame,
+  PlugZap,
+  Trash2,
+  TrendingUp,
+  Upload
+} from "lucide-react";
 import { useRef, useState } from "react";
 import {
   aggregateByMonth,
@@ -11,6 +19,10 @@ import { formatCategory, formatKgCo2e, formatTonnesCo2e } from "@/lib/format";
 import { useActivityRecords } from "@/hooks/use-activity-records";
 import { exportRecordsToCsv } from "@/lib/storage/export";
 import { serializeLocalDataEnvelope } from "@/lib/storage/local-data";
+import {
+  CategoryEmissionsChart,
+  MonthlyEmissionsChart
+} from "@/components/charts/emissions-charts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,11 +52,12 @@ export function DashboardClient() {
   const categoryTotals = sumByCategory(records);
   const monthlyTotals = aggregateByMonth(records);
   const recentRecords = records.slice(0, 5);
-  const maxMonthly = Math.max(
-    0,
-    ...monthlyTotals.map((item) => item.emissionsKgCo2e)
-  );
-  const maxCategory = Math.max(0, ...Object.values(categoryTotals));
+  const categoryChartData = Object.entries(categoryTotals)
+    .map(([category, emissionsKgCo2e]) => ({
+      category: category as keyof typeof categoryTotals,
+      emissionsKgCo2e
+    }))
+    .filter((item) => item.emissionsKgCo2e > 0);
 
   const summaryCards = [
     {
@@ -234,16 +247,7 @@ export function DashboardClient() {
           </CardHeader>
           <CardContent>
             {monthlyTotals.length > 0 ? (
-              <div className="space-y-3">
-                {monthlyTotals.map((point) => (
-                  <MeterRow
-                    key={point.month}
-                    label={point.month}
-                    max={maxMonthly}
-                    value={point.emissionsKgCo2e}
-                  />
-                ))}
-              </div>
+              <MonthlyEmissionsChart data={monthlyTotals} />
             ) : (
               <EmptyState label="Henuz kayit yok" />
             )}
@@ -258,17 +262,8 @@ export function DashboardClient() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {records.length > 0 ? (
-              <div className="space-y-3">
-                {Object.entries(categoryTotals).map(([category, value]) => (
-                  <MeterRow
-                    key={category}
-                    label={formatCategory(category)}
-                    max={maxCategory}
-                    value={value}
-                  />
-                ))}
-              </div>
+            {categoryChartData.length > 0 ? (
+              <CategoryEmissionsChart data={categoryChartData} />
             ) : (
               <EmptyState label="Kategori verisi bekleniyor" />
             )}
@@ -320,33 +315,6 @@ export function DashboardClient() {
           )}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function MeterRow({
-  label,
-  value,
-  max
-}: {
-  label: string;
-  value: number;
-  max: number;
-}) {
-  const width = max > 0 ? Math.max((value / max) * 100, 4) : 0;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">{formatKgCo2e(value)}</span>
-      </div>
-      <div className="h-2 rounded-full bg-muted">
-        <div
-          className="h-2 rounded-full bg-emerald-600"
-          style={{ width: `${width}%` }}
-        />
-      </div>
     </div>
   );
 }

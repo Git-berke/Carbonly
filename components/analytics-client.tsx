@@ -8,8 +8,13 @@ import {
   sumByCategory,
   sumByScope
 } from "@/lib/calculations/aggregation";
-import { formatCategory, formatKgCo2e } from "@/lib/format";
+import { formatKgCo2e } from "@/lib/format";
 import { useActivityRecords } from "@/hooks/use-activity-records";
+import {
+  CategoryEmissionsChart,
+  MonthlyEmissionsChart,
+  ScopeEmissionsChart
+} from "@/components/charts/emissions-charts";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -34,11 +39,16 @@ export function AnalyticsClient() {
   const scopeTotals = sumByScope(filteredRecords);
   const categoryTotals = sumByCategory(filteredRecords);
   const monthlyTotals = aggregateByMonth(filteredRecords);
-  const maxMonthly = Math.max(
-    0,
-    ...monthlyTotals.map((item) => item.emissionsKgCo2e)
-  );
-  const maxCategory = Math.max(0, ...Object.values(categoryTotals));
+  const scopeChartData = [
+    { scope: "scope1" as const, emissionsKgCo2e: scopeTotals.scope1 },
+    { scope: "scope2" as const, emissionsKgCo2e: scopeTotals.scope2 }
+  ].filter((item) => item.emissionsKgCo2e > 0);
+  const categoryChartData = Object.entries(categoryTotals)
+    .map(([category, emissionsKgCo2e]) => ({
+      category: category as keyof typeof categoryTotals,
+      emissionsKgCo2e
+    }))
+    .filter((item) => item.emissionsKgCo2e > 0);
 
   return (
     <div className="space-y-6 pb-20 lg:pb-0">
@@ -103,16 +113,7 @@ export function AnalyticsClient() {
           </CardHeader>
           <CardContent>
             {monthlyTotals.length > 0 ? (
-              <div className="space-y-3">
-                {monthlyTotals.map((point) => (
-                  <MeterRow
-                    key={point.month}
-                    label={point.month}
-                    max={maxMonthly}
-                    value={point.emissionsKgCo2e}
-                  />
-                ))}
-              </div>
+              <MonthlyEmissionsChart data={monthlyTotals} />
             ) : (
               <EmptyChart label="Trend verisi bekleniyor" />
             )}
@@ -120,29 +121,36 @@ export function AnalyticsClient() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Kategori dagilimi</CardTitle>
+            <CardTitle>Scope dagilimi</CardTitle>
             <CardDescription>
-              Secili araliktaki kategori toplamlari.
+              Scope 1 ve Scope 2 toplamlarinin karsilastirmasi.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {filteredRecords.length > 0 ? (
-              <div className="space-y-3">
-                {Object.entries(categoryTotals).map(([category, value]) => (
-                  <MeterRow
-                    key={category}
-                    label={formatCategory(category)}
-                    max={maxCategory}
-                    value={value}
-                  />
-                ))}
-              </div>
+            {scopeChartData.length > 0 ? (
+              <ScopeEmissionsChart data={scopeChartData} />
             ) : (
               <EmptyChart label="Dagilim verisi bekleniyor" />
             )}
           </CardContent>
         </Card>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Kategori karsilastirmasi</CardTitle>
+          <CardDescription>
+            Secili araliktaki elektrik, dogal gaz, dizel ve benzin toplamlari.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {categoryChartData.length > 0 ? (
+            <CategoryEmissionsChart data={categoryChartData} />
+          ) : (
+            <EmptyChart label="Kategori verisi bekleniyor" />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -166,33 +174,6 @@ function Metric({
         <p className="text-2xl font-semibold">{value}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function MeterRow({
-  label,
-  value,
-  max
-}: {
-  label: string;
-  value: number;
-  max: number;
-}) {
-  const width = max > 0 ? Math.max((value / max) * 100, 4) : 0;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground">{formatKgCo2e(value)}</span>
-      </div>
-      <div className="h-2 rounded-full bg-muted">
-        <div
-          className="h-2 rounded-full bg-emerald-600"
-          style={{ width: `${width}%` }}
-        />
-      </div>
-    </div>
   );
 }
 
